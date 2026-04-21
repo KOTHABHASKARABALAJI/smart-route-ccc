@@ -115,14 +115,27 @@ int main() {
 
     // --- DYNAMIC PROGRAMMING APPROACH ---
     RouteResult optimal = tspDP(dist);
-    cout << "DP Optimal Route (cycle): ";
+    cout << "==============================\n";
+    cout << "OPTIMAL ROUTE SUMMARY\n";
+    cout << "==============================\n";
+    cout << "Route: ";
     for (size_t i = 0; i < optimal.path.size(); ++i) {
         cout << char('A' + optimal.path[i]);
         if (i < optimal.path.size() - 1) {
             cout << " -> ";
         }
     }
-    cout << "\nCost: " << optimal.cost << "\n\n";
+    cout << "\nCost Breakdown: ";
+    for (size_t i = 0; i < optimal.path.size() - 1; ++i) {
+        int u = optimal.path[i];
+        int v = optimal.path[i+1];
+        cout << char('A' + u) << "->" << char('A' + v) << "(" << dist[u][v] << ")";
+        if (i < optimal.path.size() - 2) {
+            cout << " + ";
+        }
+    }
+    cout << " = " << optimal.cost << "\n";
+    cout << "Total Cost: " << optimal.cost << "\n\n";
 
     // --- COMPARISON ---
     int diff = greedy.cost - optimal.cost;
@@ -158,6 +171,8 @@ RouteResult greedyRoute(const vector<vector<int>>& dist) {
     visited[current] = true;
     path.push_back(current);
     
+    cout << "[Greedy Execution Steps]\n";
+    
     // Visit the remaining N-1 cities
     for (int step = 0; step < n - 1; ++step) {
         int nextCity = -1;
@@ -171,6 +186,9 @@ RouteResult greedyRoute(const vector<vector<int>>& dist) {
             }
         }
         
+        cout << "  Step " << step + 1 << ": From " << char('A' + current) << " -> " << char('A' + nextCity) 
+             << " (cost = " << minDistance << "), Running Total = " << cost + minDistance << "\n";
+             
         visited[nextCity] = true;
         path.push_back(nextCity);
         cost += minDistance;
@@ -178,6 +196,9 @@ RouteResult greedyRoute(const vector<vector<int>>& dist) {
     }
     
     // Complete the cycle: return to the starting city (0) for a fair comparison against TSP DP.
+    cout << "  Step " << n << ": Return from " << char('A' + current) << " -> A (cost = " << dist[current][0] 
+         << "), Running Total = " << cost + dist[current][0] << "\n\n";
+         
     cost += dist[current][0];
     path.push_back(0);
     
@@ -205,13 +226,77 @@ RouteResult tspDP(const vector<vector<int>>& dist) {
     
     path.push_back(0); // Start at 0
     
+    cout << "======================================\n";
+    cout << "DP EXECUTION (STEP-BY-STEP)\n";
+    cout << "======================================\n";
+    cout << "(Mask bits indicate visited cities. Only final optimal decisions shown.)\n\n";
+    
+    int step = 1;
+    int runningCost = 0;
+
     // Reconstruct the optimal path using the parent table
     while (currMask != ((1 << n) - 1)) {
         int nextCity = parent[currMask][currPos];
+        int stepCost = dist[currPos][nextCity];
+        runningCost += stepCost;
+        
+        cout << "--------------------------------------\n";
+        cout << "Step " << step++ << "\n";
+        cout << "> Current City: " << char('A' + currPos) << "\n";
+        
+        cout << "  Visited: {";
+        bool first = true;
+        for (int j = 0; j < n; ++j) {
+            if (currMask & (1 << j)) {
+                if (!first) cout << ", ";
+                cout << char('A' + j);
+                first = false;
+            }
+        }
+        cout << "}\n";
+        
+        cout << "  Mask: ";
+        for (int j = n - 1; j >= 0; --j) {
+            cout << ((currMask & (1 << j)) ? "1" : "0");
+        }
+        cout << " (" << currMask << ")\n";
+        
+        cout << "- Next City Chosen: " << char('A' + nextCity) << "\n";
+        cout << "+ Cost Added: " << stepCost << "\n";
+        cout << "Total Cost So Far: " << runningCost << "\n";
+        
         path.push_back(nextCity);
         currMask |= (1 << nextCity); // Mark the next city as visited in the mask
         currPos = nextCity;
     }
+    
+    int finalCost = dist[currPos][0];
+    runningCost += finalCost;
+    
+    cout << "--------------------------------------\n";
+    cout << "Step " << step << "\n";
+    cout << "> Current City: " << char('A' + currPos) << "\n";
+    cout << "  Visited: {";
+    bool first = true;
+    for (int j = 0; j < n; ++j) {
+        if (currMask & (1 << j)) {
+            if (!first) cout << ", ";
+            cout << char('A' + j);
+            first = false;
+        }
+    }
+    cout << "}\n";
+    
+    cout << "  Mask: ";
+    for (int j = n - 1; j >= 0; --j) {
+        cout << ((currMask & (1 << j)) ? "1" : "0");
+    }
+    cout << " (" << currMask << ")\n";
+        
+    cout << "- Next City Chosen: A (Return to Start)\n";
+    cout << "+ Cost Added: " << finalCost << "\n";
+    cout << "Total Cost So Far: " << runningCost << "\n";
+    cout << "--------------------------------------\n\n";
     
     path.push_back(0); // Return to start
     
